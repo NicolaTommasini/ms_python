@@ -1,6 +1,6 @@
 import math
 
-def shunting_yard(expression,x):
+def evaluator(expression,x):
     expression = expression.replace('x', str(x))
     precedence = {'+': 1, '-': 1, '*': 2, '/': 2, '%': 2, '^': 3, 'sin': 3, 'cos': 3, 'tan': 3, 'cot': 3}
 
@@ -131,7 +131,7 @@ def main():
     expression, values = parse_arguments()
     results = []
     for x in values:
-        result = shunting_yard(expression, x)
+        result = evaluator(expression, x)
         results.append(result)
     print(*results, sep=', ')
 
