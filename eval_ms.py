@@ -1,20 +1,52 @@
 import math
+from typing import List, Dict, Tuple, Union, Any
+import argparse
+import re
 
-def evaluator(expression,x):
-    expression = expression.replace('x', str(x))
-    precedence = {'+': 1, '-': 1, '*': 2, '/': 2, '%': 2, '^': 3, 'sin': 3, 'cos': 3, 'tan': 3, 'cot': 3}
+precedence = {'+': 1, '-': 1, '*': 2, '/': 2, '%': 2, '^': 3, 'sin': 3, 'cos': 3, 'tan': 3, 'cot': 3}
 
-    def apply_operator(operator, operand_stack):
+def replace_operators(expression):
+    expression = expression.replace('**', '^')
+    return expression
+
+def replace_multiple_signs(expression: str) -> str:
+    result = ""
+    i = 0
+    while i < len(expression):
+        if expression[i] in '--':
+            sign = expression[i]
+            count = 1
+
+            while i + count < len(expression) and expression[i + count] == sign:
+                count += 1
+
+            if count % 2 == 0:
+                result += '+'
+            else:
+                result += '-'
+
+            i += count
+        else:
+            result += expression[i]
+            i += 1
+    return result
+
+def apply_operator(operator: str, operand_stack: List[float]) -> Union[List[float],Any]:
         if operator == '+':
             operand2 = operand_stack.pop()
             operand1 = operand_stack.pop()
             result = operand1 + operand2
             operand_stack.append(result)
         elif operator == '-':
-            operand2 = operand_stack.pop()
-            operand1 = operand_stack.pop()
-            result = operand1 - operand2
-            operand_stack.append(result)
+            if len(operand_stack) == 1:
+                operand = operand_stack.pop()
+                result = -operand  # Unary negation
+                operand_stack.append(result)
+            else:
+                operand2 = operand_stack.pop()
+                operand1 = operand_stack.pop()
+                result = operand1 - operand2
+                operand_stack.append(result)
         elif operator == '*':
             operand2 = operand_stack.pop()
             operand1 = operand_stack.pop()
@@ -33,7 +65,7 @@ def evaluator(expression,x):
         elif operator == '^':
             operand2 = operand_stack.pop()
             operand1 = operand_stack.pop()
-            result = operand1 ** operand2
+            result = math.pow(operand1, operand2)
             operand_stack.append(result)
         elif operator == 'sin':
             operand = operand_stack.pop()
@@ -51,13 +83,16 @@ def evaluator(expression,x):
             operand = operand_stack.pop()
             result = 1 / math.tan(operand)
             operand_stack.append(result)
+        print('s',operand_stack)
+        return operand_stack
+    
 
-    def evaluate_expression(tokens):
+def evaluate_expression(tokens: List[str],precedence: Dict[str, int]) -> Union[float,Any]:
         operator_stack = []
         operand_stack = []
-
+    # Check if token is a float
         for token in tokens:
-            if token.replace('.', '', 1).isdigit():  # Check if token is a float
+            if token.replace('.', '', 1).isdigit():  
                 operand_stack.append(float(token))
             elif token.isalpha():
                 operator_stack.append(token)
@@ -78,39 +113,59 @@ def evaluator(expression,x):
 
         return operand_stack[0]
 
-    def tokenize(expression):
-        tokens = []
-        i = 0
+def tokenize(expression: str) -> List[str]:
+    tokens = []
+    i = 0
 
-        while i < len(expression):
-            if expression[i].isdigit() or expression[i] == '.':
-                j = i
+    while i < len(expression):
+        if expression[i].isdigit() or expression[i] == '.':
+            j = i
+            while j < len(expression) and (expression[j].isdigit() or expression[j] == '.'):
+                j += 1
+            tokens.append(expression[i:j])
+            i = j
+        elif expression[i].isalpha():
+            func_name = ""
+            while i < len(expression) and expression[i].isalpha():
+                func_name += expression[i]
+                i += 1
+            tokens.append(func_name)
+        elif expression[i] == '-':
+            if i == 0 or (i > 0 and not expression[i-1].isdigit() and expression[i-1] != ')'):
+                # Treat the '-' as part of a negative number
+                j = i + 1
                 while j < len(expression) and (expression[j].isdigit() or expression[j] == '.'):
                     j += 1
                 tokens.append(expression[i:j])
                 i = j
-            elif expression[i].isalpha():
-                func_name = ""
-                while i < len(expression) and expression[i].isalpha():
-                    func_name += expression[i]
-                    i += 1
-                tokens.append(func_name)
             else:
+                # Treat the '-' as an operator
                 tokens.append(expression[i])
                 i += 1
+        else:
+            tokens.append(expression[i])
+            i += 1
 
-        return tokens
+    return tokens
 
+
+
+def evaluate(expression,x):
+    print(x)
+    print(expression)
+    expression = expression.replace('x', str(x))
+    expression = replace_operators(expression)
+    # expression = replace_multiple_signs(expression)
+    print('post',expression)
+    
     # Tokenize the expression
     tokens = tokenize(expression)
+    print(tokens)
 
     # Evaluate the expression
-    result = evaluate_expression(tokens)
+    result = evaluate_expression(tokens,precedence)
 
     return result
-
-import argparse
-import re
 
 
 def parse_values(values_str):
@@ -131,7 +186,7 @@ def main():
     expression, values = parse_arguments()
     results = []
     for x in values:
-        result = evaluator(expression, x)
+        result = evaluate(expression, x)
         results.append(result)
     print(*results, sep=', ')
 
